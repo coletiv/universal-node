@@ -32,26 +32,24 @@ var ws 			= require('ws');
 var Session 	= require('./lib/session');
 var Websocket 	= require('./lib/websocket');
 
-// Flag to enable HTTPS
-var useSSL = process.env.USE_SSL || false;
-
-// Server port and credentials
-var HTTP_HOST = process.env.HTTP_HOST || '0.0.0.0';
+// Server configuration
+var useSSL = false;
+var HTTP_HOST = '0.0.0.0';
 var port = useSSL ? 443 : 8080;
+
+var staticSharedSecret = "1728361872638323727987987ab123123";
 // var key = fs.readFileSync('ssl-certificates/localhost_key.pem', 'utf8');
 // var certificate = fs.readFileSync('ssl-certificates/localhost_cert.pem', 'utf8');
 // var credentials = {
 //   key: key,
 //   cert: certificate
 
-var static_sharedSecret = "367b254f4f5c453b662b614038316f7123332a793366436b41383e433d";
-
 // Transport Session (Actions and Events)
 
 function transportSessionAuthenticate(session, object) {
   console.log("transportSessionAuthenticate");
 
-  if (session.state === "connected" && object.shared_secret === static_sharedSecret) {
+  if (session.state === "connected" && object.shared_secret === staticSharedSecret) {
     console.log("transportSessionAuthenticate 'Success'");
 
     var token;
@@ -64,7 +62,7 @@ function transportSessionAuthenticate(session, object) {
 
     session.sendMessage(["session", "authenticated", {
       "user_id": session.userId,
-      "shared_secret": static_sharedSecret
+      "shared_secret": staticSharedSecret
     }]);    
 
   } else {
@@ -136,7 +134,7 @@ if (useSSL) {
   websocketServer = new ws.Server({
     server: httpsServer
   }); // Instantiate the WSS server
-  
+
 } else {
   websocketServer = new ws.Server({
     host: HTTP_HOST,

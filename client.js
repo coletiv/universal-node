@@ -38,7 +38,7 @@ var Websocket = require('./lib/websocket.js');
 // Transport Session
 
 var session = new Session.Session();
-session.sharedSecret = "367b254f4f5c453b662b614038316f7123332a793366436b41383e433d";
+session.sharedSecret = "1728361872638323727987987ab123123";
 session.userId = "27aeae53-f5d3-429d-82a9-35d0355b875c";
 
 function userInputLoop(session) {
