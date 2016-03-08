@@ -116,6 +116,8 @@ function transportSessionDidAuthenticate(session) {
 }
 
 
+var staticSharedSecret = "1728361872638323727987987ab123123"; 
+
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"; // Accept self-signed SSL certificates
 
 program.option('--url <url>', 'Get the be-api-server websocket URL (ie. wss://api.coletiv.io)').parse(process.argv);
@@ -124,11 +126,9 @@ var websocket_url = (program.hasOwnProperty('url')) ? program.url : 'wss://api.c
 console.log("Websocket URL: " + websocket_url);
 
 var websocket = new ws(websocket_url); // Use SSL
-var session = undefined;
 
-websocket.on('open', function open() {  
-  session = new universalSession.Session( (new universalWebsocket.Websocket(websocket)) );
-  session.sharedSecret = "1728361872638323727987987ab123123";
+websocket.on('open', function open() {    
+  session = new universalSession.Session(websocket, staticSharedSecret);  
   session.userId = "27aeae53-f5d3-429d-82a9-35d0355b875c";
 
   transportSessionDidOpen(session);

@@ -30,7 +30,6 @@ var https 				= require('https');
 var express 			= require('express');
 var ws 					= require('ws');
 var universalSession 	= require('./lib/session');
-var universalWebsocket  = require('./lib/websocket');
 
 // Server configuration
 var useSSL = false;
@@ -88,34 +87,34 @@ function transportSessionEcho(session, message) {
 function transportSessionDidReceiveMessage(session, message) {
   console.log("transportSessionDidReceiveMessage: " + message);  
 
-  var type = message[0];
+  var type 	 = message[0];
   var action = message[1];
   var object = message[2];
 
   // Check if the session is 'authenticated'
   if (session.isAuthenticated() === false) {  	
 
-    // Expected 'session' 'authenticate'
-    if (type === "session" && action === "authenticate") {
+  	var isSessionAuthenticateMessage = (type === "session") && (action === "authenticate");
 
+    // Expected 'session' 'authenticate'
+    if (isSessionAuthenticateMessage === true) {
       // Check credentials
       transportSessionAuthenticate(session, object);
 
     } else {
-
       // Unexpected, force the session's connection to close
       transportSessionClose(session, object);
     }
 
-  } else {  	
-  	if ( (type === "message") && (action === "echo") ) {     
+  } else {  
+  	var isEchoMessage = (type === "message") && (action === "echo");
+  	var isSessionCloseMessage = (type === "session") && (action === "close");
+
+  	if (isEchoMessage === true ) {     
         transportSessionEcho(session, message);      
-    }
-    // User session
-    else if (type === "session") {
-      if (action === "close") {
-        transportSessionClose(session, object);
-      }
+
+    } else if (isSessionCloseMessage === true) {
+      transportSessionClose(session, object);
     }       
   }
 }
@@ -138,9 +137,7 @@ if (useSSL) {
 
 websocketServer.on('connection', function connection(websocket) {
 
-  var socketWrapper = new universalWebsocket.Websocket(websocket);
-  var session = new universalSession.Session(socketWrapper);
-  session.sharedSecret = staticSharedSecret;
+  var session = new universalSession.Session(websocket, staticSharedSecret);
 
   session.didConnect();
 
