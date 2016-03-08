@@ -8,8 +8,8 @@
   "dependencies": {    
     "msgpack": "1.0.2",
     "ws": "1.0.1",    
-    "express": "4.13.4", // TODO try to get rid of express
+    "express": "4.13.4",
     "commander": "2.9.0",
-    "prompt": "0.2.14",
+    "prompt": "0.2.14"
   }
 }
