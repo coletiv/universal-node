@@ -27,15 +27,17 @@
 var universalNodeModule = require("./lib/index.js");
 
 function nodeDidConnect(session) {
-	console.log('nodeDidConnect session: ' + session);
+	console.log('a node just connected: ' + session);
 };
 
 function nodeDidDisconnect(session) {
-	console.log('nodeDidDisconnect session: ' + session);
+	console.log('a node disconnected: ' + session);
 };
 
 function didReceiveMessageFromNode(session, message) {
-	console.log('didReceiveMessageFromNode session: ' + session + ' received message \'' + message + '\'');
+	console.log('a node sent a message: \'' + message + '\'');
+	console.log('sending echo back');
+
 	session.sendMessage(message); // just echo whatever the node sent to us
 };
 

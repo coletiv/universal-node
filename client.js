@@ -84,7 +84,7 @@ function didConnect(session) {
 
 function didClose(session) {
   console.log('didClose: closing down');
-  
+
   process.exit(1);
 }
 
