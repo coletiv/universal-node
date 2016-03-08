@@ -24,16 +24,13 @@
 
  */
 
-var fs = require('fs');
-var util = require('util');
-var https = require('https');
-var express = require('express');
-var ws = new require('ws');
-var Session = require('./lib/session');
-var Websocket = require('./lib/websocket');
-
-// Flag used to disable certain features
-var developer_mode = process.env.DEV_MODE || false;
+var fs 			= require('fs');
+var util 		= require('util');
+var https 		= require('https');
+var express 	= require('express');
+var ws 			= require('ws');
+var Session 	= require('./lib/session');
+var Websocket 	= require('./lib/websocket');
 
 // Flag to enable HTTPS
 var useSSL = process.env.USE_SSL || false;
@@ -139,6 +136,7 @@ if (useSSL) {
   websocketServer = new ws.Server({
     server: httpsServer
   }); // Instantiate the WSS server
+  
 } else {
   websocketServer = new ws.Server({
     host: HTTP_HOST,
