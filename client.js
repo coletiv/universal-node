@@ -25,20 +25,18 @@
  */
 
 /*
- Usage: node client.js --url <websocket url i.e. ws://127.0.0.1:8080>
+ Usage: node client.js --url <websocket url i.e. ws://127.0.0.1> --port <port number i.e 8080>
+  i.e.  node client.js --url ws://127.0.0.1 --port 8080
  */
 
-var ws                 = require('ws');
-var msgpack            = require('msgpack');
-var prompt             = require('prompt');
-var program            = require('commander');
-var universalSession   = require('./lib/session.js');
-var universalWebsocket = require('./lib/websocket.js');
+var prompt          = require('prompt');
+var program         = require('commander');
+var universalModule = require('./lib/index.js');
 
 function userInputLoop(session) {
-  console.log("\n*** Coletiv Universal/node Client ***");
-  console.log("Please insert one of the following options:");
-  console.log("1 - Send echo");
+  console.log('\n*** Coletiv Universal/node Client ***');
+  console.log('Please insert one of the following options:');
+  console.log('1 - Send echo');
 
   prompt.get(['option'], function (err, result) {
 
@@ -47,97 +45,67 @@ function userInputLoop(session) {
       userInputLoop();
     }
 
-    executeUserOption(session, result.option);
-    userInputLoop(session);
+    executeUserOption(session, result.option);    
   });
 }
 
 function executeUserOption(session, userOption) {
-  var type           = "";
-  var action         = "";
-  var message        = {};
+  var type     = '';
+  var action   = '';
+  var message  = '';
 
   switch(userOption) {
 
     case '1': {
-      type    = "message";
-      action  = "echo";
-      message = "Hello world!";
+      type    = 'message';
+      action  = 'echo';
+      message = 'Hello world!';
     } break;
 
     default: {
-      console.log("Option not supported");
+      console.log('Option not supported');
       return;
     } break;
   }
 
-  session.sendMessage([type, action, message]);
-}
-
-// Transport Session (Actions)
-
-function transportSessionAuthenticate(session) {
-  console.log("transportSessionAuthenticate");  
-  session.sendMessage(["session", "authenticate", {"shared_secret":session.sharedSecret, "user_id":session.userId}]);
+  var dataToSend = [type, action, message];
+  console.log('sending: \'' + dataToSend + '\'');
+  session.sendMessage(dataToSend);
 }
 
 // Transport Session (Events)
 
-function transportSessionDidOpen(session) {
-  console.log("transportSessionDidOpen");
-  transportSessionAuthenticate(session);
-}
+function didConnect(session) {
+  console.log('didConnect');  
 
-function transportSessionDidClose(session) {
-  console.log("closing down due to: websocket closed");
-  exit();
-}
-
-function transportSessionDidReceiveMessage(session, data) {
-  var message = session.websocket.unpackMessage(data);
-  console.log("transportSessionDidReceiveMessage", message);
-
-  var type = message[0];
-  var action = message[1];
-  var object = message[2];
-
-  if (type == "session") {
-    if (action == "authenticated") {
-      transportSessionDidAuthenticate(session);
-    }
-  }
-}
-
-function transportSessionDidAuthenticate(session) {
-  console.log("transportSessionDidAuthenticate");
-  
   prompt.start();
   userInputLoop(session);
 }
 
+function didClose(session) {
+  console.log('didClose: closing down');
+  
+  process.exit(1);
+}
 
-var staticSharedSecret = "1728361872638323727987987ab123123"; 
+function didReceiveMessage(session, message) {
+  console.log('didReceiveMessage: session: ' + session + ' message \'' + message + '\'');
 
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"; // Accept self-signed SSL certificates
+  userInputLoop(session);
+}
 
-program.option('--url <url>', 'Get the be-api-server websocket URL (ie. wss://api.coletiv.io)').parse(process.argv);
 
-var websocket_url = (program.hasOwnProperty('url')) ? program.url : 'wss://api.coletiv.io' ;
-console.log("Websocket URL: " + websocket_url);
+program.option('--url <url>', 'server websocket URL (ie. wss://api.coletiv.io)')
+       .option('--port <port>', 'server port (ie. 8080)')
+       .parse(process.argv);
 
-var websocket = new ws(websocket_url); // Use SSL
+var url  = (program.hasOwnProperty('url')) ? program.url : 'wss://api.coletiv.io' ;
+var port = (program.hasOwnProperty('port')) ? program.port : '443' ;
 
-websocket.on('open', function open() {    
-  session = new universalSession.Session(websocket, staticSharedSecret);  
-  session.userId = "27aeae53-f5d3-429d-82a9-35d0355b875c";
+console.log('connecting to URL: ' + url + 'port: ' + port);
 
-  transportSessionDidOpen(session);
-});
+var SHARED_SECRET = '1728361872638323727987987ab123123'; 
+var USER_ID = '27aeae53-f5d3-429d-82a9-35d0355b875c';
 
-websocket.on('close', function close() {
-  transportSessionDidClose(session);
-});
-
-websocket.on('message', function message(data, flags) {  
-  transportSessionDidReceiveMessage(session, data);
-});
+var node = new universalModule.UniversalNode();
+node.connect(url, port, SHARED_SECRET, USER_ID, didConnect, didClose, didReceiveMessage);

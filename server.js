@@ -26,20 +26,20 @@
 
 var universalNodeModule = require("./lib/index.js");
 
-function nodeConnectedCallback(session) {
-	console.log("nodeConnectedCallback session: " + session);
+function nodeDidConnect(session) {
+	console.log('nodeDidConnect session: ' + session);
 };
 
-function nodeDisconnectedCallback(session) {
-	console.log("nodeDisconnectedCallback session: " + session);
+function nodeDidDisconnect(session) {
+	console.log('nodeDidDisconnect session: ' + session);
 };
 
-function messageReceivedCallback(session, message) {
-	console.log("messageReceivedCallback session: " + session + " received message \"" + message + "\"");
-	session.sendMessage(message); // just echo
+function didReceiveMessageFromNode(session, message) {
+	console.log('didReceiveMessageFromNode session: ' + session + ' received message \'' + message + '\'');
+	session.sendMessage(message); // just echo whatever the node sent to us
 };
 
-var sharedScret = "1728361872638323727987987ab123123";
-var node = new universalNodeModule.UniversalNode(sharedScret);
+var SHARED_SECRET = '1728361872638323727987987ab123123';
+var node = new universalNodeModule.UniversalNode();
 
-node.listen(nodeConnectedCallback, nodeDisconnectedCallback, messageReceivedCallback);
+node.listen(SHARED_SECRET, nodeDidConnect, nodeDidDisconnect, didReceiveMessageFromNode);
