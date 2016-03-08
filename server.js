@@ -29,8 +29,8 @@ var util = require('util');
 var https = require('https');
 var express = require('express');
 var ws = new require('ws');
-var BeApiSession = require('./lib/session');
-var BeApiWebsocket = require('./lib/websocket');
+var Session = require('./lib/session');
+var Websocket = require('./lib/websocket');
 
 // Flag used to disable certain features
 var developer_mode = process.env.DEV_MODE || false;
@@ -46,27 +46,16 @@ var port = useSSL ? 443 : 8080;
 // var credentials = {
 //   key: key,
 //   cert: certificate
-// };
-
-// Logs
-
-var logs = function(message) {
-  console.log(message);
-};
-
-// Transport Session
 
 var static_sharedSecret = "367b254f4f5c453b662b614038316f7123332a793366436b41383e433d";
-
-var sessions = []; // contains all the sessions
 
 // Transport Session (Actions and Events)
 
 function transportSessionAuthenticate(session, object) {
-  logs("transportSessionAuthenticate");
+  console.log("transportSessionAuthenticate");
 
   if (session.state === "connected" && object.shared_secret === static_sharedSecret) {
-    logs("transportSessionAuthenticate 'Success'");
+    console.log("transportSessionAuthenticate 'Success'");
 
     var token;
 
@@ -74,8 +63,7 @@ function transportSessionAuthenticate(session, object) {
       token = object.token;
     }
 
-    session.didAuthenticateWithUserId(object.user_id, token);
-    sessions.push(session);
+    session.didAuthenticateWithUserId(object.user_id, token);    
 
     session.sendMessage(["session", "authenticated", {
       "user_id": session.userId,
@@ -83,34 +71,28 @@ function transportSessionAuthenticate(session, object) {
     }]);    
 
   } else {
-    logs("transportSessionAuthenticate 'Failed'");
+    console.log("transportSessionAuthenticate 'Failed'");
     transportSessionClose(session, object);
   }
 }
 
 function transportSessionClose(session, object) {
-  logs("transportSessionClose");
+  console.log("transportSessionClose");
 
-  session.didClose();
-
-  var indexOfSession = sessions.indexOf(session);
-
-  if (indexOfSession > -1) {
-    sessions.splice(indexOfSession, 1);
-  }
+  session.didClose();  
 }
 
 function transportSessionNetworkFound(session, timestamp) {
 
   // Check & Log public Ip
-  logs(" + Network found: ");
+  console.log(" + Network found: ");
 }
 
 // Transport Session (Connection)
 
 function transportSessionDidReceiveMessage(session, message) {
-  logs("transportSessionDidReceiveMessage");
-  logs(message);
+  console.log("transportSessionDidReceiveMessage");
+  console.log(message);
 
   // TODO Error handling, in case message is not in the correct format
   var type = message[0];
@@ -166,8 +148,8 @@ if (useSSL) {
 
 websocketServer.on('connection', function connection(websocket) {
 
-  var socketWrapper = new BeApiWebsocket.BeApiWebsocket(websocket);
-  var session = new BeApiSession.Session(socketWrapper);
+  var socketWrapper = new Websocket.Websocket(websocket);
+  var session = new Session.Session(socketWrapper);
   session.didConnect();
 
   websocket.on('close', function closeEvent(code, data) {
@@ -175,16 +157,16 @@ websocketServer.on('connection', function connection(websocket) {
   });
 
   websocket.on('error', function errorEvent(error) {
-    // TODO
+    console.log("websocket error:" + error);
   });
 
   websocket.on('message', function messageEvent(data, flags) {
     var message = socketWrapper.unpackMessage(data);
-    if (!util.isNullOrUndefined(message)) {
+    
+    if (util.isNullOrUndefined(message) === false) {
       transportSessionDidReceiveMessage(session, message);
     }
   });
-
 });
 
-logs("*** BinaryEdge Fortity API Server (Port:" + port + ") ***");
+console.log("*** Coletiv Universal node (Port:" + port + ") ***");

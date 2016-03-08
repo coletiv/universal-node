@@ -25,48 +25,26 @@
  */
 
 /*
- Usage: node client.js --url <websocket url>
+ Usage: node client.js --url <websocket url i.e. ws://127.0.0.1:8080>
  */
 
-var ws       = require('ws');
-var msgpack  = require('msgpack');
-var prompt   = require('prompt');
-var program  = require('commander');
+var ws        = require('ws');
+var msgpack   = require('msgpack');
+var prompt    = require('prompt');
+var program   = require('commander');
+var Session   = require('./lib/session.js');
+var Websocket = require('./lib/websocket.js');
 
 // Transport Session
 
-var static_sharedSecret = "367b254f4f5c453b662b614038316f7123332a793366436b41383e433d";
-var static_userId = "27aeae53-f5d3-429d-82a9-35d0355b875c";
-
-function Session(sharedSecret, userId) {
-  this.sharedSecret = sharedSecret;
-  this.userId = userId;
-  this.state = "idle"; // {idle, authenticating, authenticated}
-  this.websocket = undefined;
-}
-
-var session = new Session(static_sharedSecret, static_userId);
-
-// Transport Session (Actions and Events)
-
-function transportSessionAuthenticate(session) {
-  console.log("transportSessionAuthenticate");
-  session.state = "authenticating";
-  transportSessionSendMessage(session, ["session", "authenticate", {"shared_secret":session.sharedSecret, "user_id":session.userId}]);
-}
-
-function transportSessionDidAuthenticate(session) {
-  console.log("transportSessionDidAuthenticate");
-  session.state = "authenticated";
-
-  prompt.start();
-  userInputLoop(session);
-}
+var session = new Session.Session();
+session.sharedSecret = "367b254f4f5c453b662b614038316f7123332a793366436b41383e433d";
+session.userId = "27aeae53-f5d3-429d-82a9-35d0355b875c";
 
 function userInputLoop(session) {
   console.log("\n*** Coletiv Universal/node Client ***");
   console.log("Please insert one of the following options:");
-  console.log("1 - Send network found");
+  console.log("1 - Send echo");
 
   prompt.get(['option'], function (err, result) {
 
@@ -80,13 +58,6 @@ function userInputLoop(session) {
   });
 }
 
-function getNetworkFoundMessageFromMockData() {
-  return {
-    timestamp: new Date().toISOString(),  // UTC Timestamp (ISO 8601)    
-  };
-}
-
-
 function executeUserOption(session, userOption) {
   var type           = "";
   var action         = "";
@@ -95,9 +66,9 @@ function executeUserOption(session, userOption) {
   switch(userOption) {
 
     case '1': {
-      type    = "network";
-      action  = "found";
-      message = getNetworkFoundMessageFromMockData();
+      type    = "message";
+      action  = "echo";
+      message = "Hello world!";
     } break;
 
     default: {
@@ -105,32 +76,32 @@ function executeUserOption(session, userOption) {
       return;
     } break;
   }
-
-  transportSessionSendMessage(session, [type, action, message]);
+  session.sendMessage([type, action, message]);
 }
 
-function transportSessionClose(session) {
-  console.log("transportSessionClose");
-  session.state = "idle";
-  transportSessionSendMessage(session, ["session", "close", {}]);
+// Transport Session (Actions)
+
+function transportSessionAuthenticate(session) {
+  console.log("transportSessionAuthenticate");  
+  session.sendMessage(["session", "authenticate", {"shared_secret":session.sharedSecret, "user_id":session.userId}]);
 }
 
-// Transport Session (Connection)
+// Transport Session (Events)
 
-function transportSessionDidConnect(websocket) {
-  console.log("transportSessionDidConnect");
-  session.websocket = websocket;
+function transportSessionDidOpen() {
+  console.log("transportSessionDidOpen");
   transportSessionAuthenticate(session);
 }
 
-function transportSessionDidDisconnect(websocket) {
-  console.log("transportSessionDidDisconnect");
-  session.websocket = undefined;
-  // TODO Retry to re-establish a new connection
+function transportSessionDidClose() {
+  console.log("closing down due to: websocket closed");
+  exit();
 }
 
-function transportSessionDidReceiveMessage(websocket, message) {
+function transportSessionDidReceiveMessage(data) {
+  var message = session.websocket.unpackMessage(data);
   console.log("transportSessionDidReceiveMessage", message);
+
   var type = message[0];
   var action = message[1];
   var object = message[2];
@@ -142,63 +113,32 @@ function transportSessionDidReceiveMessage(websocket, message) {
   }
 }
 
-function transportSessionSendMessage(session, message) {
-  console.log("transportSessionSendMessage", message);
-  if (session.websocket !== undefined) {
-    transportWebsocketWrite(session.websocket, message);
-  }
+function transportSessionDidAuthenticate(session) {
+  console.log("transportSessionDidAuthenticate");
+  
+  prompt.start();
+  userInputLoop(session);
 }
 
-// Transport Message
-
-function transportMessagePack(message) {
-  var data = msgpack.pack(message);
-  return data;
-}
-
-function transportMessageUnpack(data) {
-  var message = msgpack.unpack(data);
-  return message;
-}
-
-// Transport Websocket
-
-function transportWebsocketDidOpen(websocket) {
-  transportSessionDidConnect(websocket);
-}
-
-function transportWebsocketDidClose(websocket) {
-  transportSessionDidDisconnect(websocket);
-}
-
-function transportWebsocketDidRead(websocket, data) {
-  var message = transportMessageUnpack(data);
-  transportSessionDidReceiveMessage(websocket, message);
-}
-
-function transportWebsocketWrite(websocket, message) {
-  var data = transportMessagePack(message);
-  websocket.send(data, { binary: true, mask: true });
-}
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"; // Accept self-signed SSL certificates
 
-// Websocket (Client)
-
 program.option('--url <url>', 'Get the be-api-server websocket URL (ie. wss://api.coletiv.io)').parse(process.argv);
-var websocket_url = (program.hasOwnProperty('url')) ? program.url : 'wss://api.coletiv.io' ;
-var websocket = new ws(websocket_url); // Use SSL
 
+var websocket_url = (program.hasOwnProperty('url')) ? program.url : 'wss://api.coletiv.io' ;
 console.log("Websocket URL: " + websocket_url);
 
+var websocket = new ws(websocket_url); // Use SSL
+session.websocket = new Websocket.Websocket(websocket);
+
 websocket.on('open', function open() {
-  transportWebsocketDidOpen(websocket);
+  transportSessionDidOpen();
 });
 
 websocket.on('close', function close() {
-  transportWebsocketDidClose(websocket);
+  transportSessionDidClose();
 });
 
-websocket.on('message', function message(data, flags) {
-  transportWebsocketDidRead(websocket, data);
+websocket.on('message', function message(data, flags) {  
+  transportSessionDidReceiveMessage(data);
 });
