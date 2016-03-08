@@ -24,138 +24,22 @@
 
  */
 
-var fs 					= require('fs');
-var util 				= require('util');
-var https 				= require('https');
-var express 			= require('express');
-var ws 					= require('ws');
-var universalSession 	= require('./lib/session');
+var universalNodeModule = require("./lib/index.js");
 
-// Server configuration
-var useSSL = false;
-var HTTPHost = '0.0.0.0';
-var port = useSSL ? 443 : 8080;
+function nodeConnectedCallback(session) {
+	console.log("nodeConnectedCallback session: " + session);
+};
 
-var staticSharedSecret = "1728361872638323727987987ab123123";
-// var key = fs.readFileSync('ssl-certificates/localhost_key.pem', 'utf8');
-// var certificate = fs.readFileSync('ssl-certificates/localhost_cert.pem', 'utf8');
-// var credentials = {
-//   key: key,
-//   cert: certificate
+function nodeDisconnectedCallback(session) {
+	console.log("nodeDisconnectedCallback session: " + session);
+};
 
-// Transport Session (Actions and Events)
+function messageReceivedCallback(session, message) {
+	console.log("messageReceivedCallback session: " + session + " received message \"" + message + "\"");
+	session.sendMessage(message); // just echo
+};
 
-function transportSessionAuthenticate(session, object) {
-  console.log("transportSessionAuthenticate");
+var sharedScret = "1728361872638323727987987ab123123";
+var node = new universalNodeModule.UniversalNode(sharedScret);
 
-  if (session.isConnected() && object.shared_secret === staticSharedSecret) {
-    console.log("transportSessionAuthenticate 'Success'");
-
-    var token = undefined;
-
-    if (object.token) {
-      token = object.token;
-    }
-
-    session.didAuthenticateWithUserId(object.user_id, token);        
-
-    session.sendMessage(["session", "authenticated", {
-      "user_id": session.userId,
-      "shared_secret": session.sharedSecret
-    }]);    
-
-  } else {
-    console.log("transportSessionAuthenticate 'Failed'");
-    transportSessionClose(session, object);
-  }
-}
-
-function transportSessionClose(session, object) {
-  console.log("transportSessionClose");
-
-  session.didClose();  
-}
-
-function transportSessionEcho(session, message) {  
-  console.log("\nsending: \"" + message + "\" back");
-
-  session.sendMessage(message)
-}
-
-// Transport Session (Connection)
-
-function transportSessionDidReceiveMessage(session, message) {
-  console.log("transportSessionDidReceiveMessage: " + message);  
-
-  var type 	 = message[0];
-  var action = message[1];
-  var object = message[2];
-
-  // Check if the session is 'authenticated'
-  if (session.isAuthenticated() === false) {  	
-
-  	var isSessionAuthenticateMessage = (type === "session") && (action === "authenticate");
-
-    // Expected 'session' 'authenticate'
-    if (isSessionAuthenticateMessage === true) {
-      // Check credentials
-      transportSessionAuthenticate(session, object);
-
-    } else {
-      // Unexpected, force the session's connection to close
-      transportSessionClose(session, object);
-    }
-
-  } else {  
-  	var isEchoMessage = (type === "message") && (action === "echo");
-  	var isSessionCloseMessage = (type === "session") && (action === "close");
-
-  	if (isEchoMessage === true ) {     
-        transportSessionEcho(session, message);      
-
-    } else if (isSessionCloseMessage === true) {
-      transportSessionClose(session, object);
-    }       
-  }
-}
-
-var websocketServer;
-
-if (useSSL) {
-  var httpsServer = https.createServer(credentials, express()).listen(port); // Use HTTPS server
-
-  websocketServer = new ws.Server({
-    server: httpsServer
-  }); // Instantiate the WSS server
-
-} else {
-  websocketServer = new ws.Server({
-    host: HTTPHost,
-    port: port
-  }); // Instantiate the WS server
-}
-
-websocketServer.on('connection', function connection(websocket) {
-
-  var session = new universalSession.Session(websocket, staticSharedSecret);
-
-  session.didConnect();
-
-  websocket.on('close', function closeEvent(code, data) {
-    session.didDisconnect();
-  });
-
-  websocket.on('error', function errorEvent(error) {
-    console.log("websocket error:" + error);
-  });
-
-  websocket.on('message', function messageEvent(data, flags) {
-    var message = session.unpackMessage(data);
-    
-    if (util.isNullOrUndefined(message) === false) {    	
-      transportSessionDidReceiveMessage(session, message);
-    }
-  });
-});
-
-console.log("*** Coletiv Universal node (Port:" + port + ") ***");
+node.listen(nodeConnectedCallback, nodeDisconnectedCallback, messageReceivedCallback);
