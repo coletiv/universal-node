@@ -36,17 +36,17 @@ var BeApiWebsocket = require('./lib/websocket');
 var developer_mode = process.env.DEV_MODE || false;
 
 // Flag to enable HTTPS
-var useSSL = process.env.USE_SSL || true;
+var useSSL = process.env.USE_SSL || false;
 
 // Server port and credentials
 var HTTP_HOST = process.env.HTTP_HOST || '0.0.0.0';
 var port = useSSL ? 443 : 8080;
-var key = fs.readFileSync('ssl-certificates/localhost_key.pem', 'utf8');
-var certificate = fs.readFileSync('ssl-certificates/localhost_cert.pem', 'utf8');
-var credentials = {
-  key: key,
-  cert: certificate
-};
+// var key = fs.readFileSync('ssl-certificates/localhost_key.pem', 'utf8');
+// var certificate = fs.readFileSync('ssl-certificates/localhost_cert.pem', 'utf8');
+// var credentials = {
+//   key: key,
+//   cert: certificate
+// };
 
 // Logs
 
@@ -167,7 +167,7 @@ if (useSSL) {
 websocketServer.on('connection', function connection(websocket) {
 
   var socketWrapper = new BeApiWebsocket.BeApiWebsocket(websocket);
-  var session = new BeApiSession.BeApiSession(socketWrapper);
+  var session = new BeApiSession.Session(socketWrapper);
   session.didConnect();
 
   websocket.on('close', function closeEvent(code, data) {
