@@ -25,6 +25,7 @@
  */
 
 var universalNodeModule = require("./lib/index.js");
+var fileSystemModule    = require('fs');
 
 function nodeDidConnect(session) {
 	console.log('a node just connected: ' + session);
@@ -44,4 +45,7 @@ function didReceiveMessageFromNode(session, message) {
 var SHARED_SECRET = '1728361872638323727987987ab123123';
 var node = new universalNodeModule.UniversalNode();
 
-node.listen(SHARED_SECRET, nodeDidConnect, nodeDidDisconnect, didReceiveMessageFromNode);
+var key = fileSystemModule.readFileSync('ssl-certificates/key.pem', 'utf8');
+var certificate = fileSystemModule.readFileSync('ssl-certificates/cert.pem', 'utf8');
+
+node.listen(SHARED_SECRET, nodeDidConnect, nodeDidDisconnect, didReceiveMessageFromNode, true, key, certificate);

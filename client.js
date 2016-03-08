@@ -94,6 +94,7 @@ function didReceiveMessage(session, message) {
   userInputLoop(session);
 }
 
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"; // Accept self-signed SSL certificates
 
 program.option('--url <url>', 'server websocket URL (ie. wss://api.coletiv.io)')
        .option('--port <port>', 'server port (ie. 8080)')
@@ -102,7 +103,7 @@ program.option('--url <url>', 'server websocket URL (ie. wss://api.coletiv.io)')
 var url  = (program.hasOwnProperty('url')) ? program.url : 'wss://api.coletiv.io' ;
 var port = (program.hasOwnProperty('port')) ? program.port : '443' ;
 
-console.log('connecting to URL: ' + url + 'port: ' + port);
+console.log('connecting to URL: ' + url + ':' + port);
 
 var SHARED_SECRET = '1728361872638323727987987ab123123'; 
 var USER_ID = '27aeae53-f5d3-429d-82a9-35d0355b875c';
