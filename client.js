@@ -35,12 +35,6 @@ var program   = require('commander');
 var Session   = require('./lib/session.js');
 var Websocket = require('./lib/websocket.js');
 
-// Transport Session
-
-var session = new Session.Session();
-session.sharedSecret = "1728361872638323727987987ab123123";
-session.userId = "27aeae53-f5d3-429d-82a9-35d0355b875c";
-
 function userInputLoop(session) {
   console.log("\n*** Coletiv Universal/node Client ***");
   console.log("Please insert one of the following options:");
@@ -88,17 +82,17 @@ function transportSessionAuthenticate(session) {
 
 // Transport Session (Events)
 
-function transportSessionDidOpen() {
+function transportSessionDidOpen(session) {
   console.log("transportSessionDidOpen");
   transportSessionAuthenticate(session);
 }
 
-function transportSessionDidClose() {
+function transportSessionDidClose(session) {
   console.log("closing down due to: websocket closed");
   exit();
 }
 
-function transportSessionDidReceiveMessage(data) {
+function transportSessionDidReceiveMessage(session, data) {
   var message = session.websocket.unpackMessage(data);
   console.log("transportSessionDidReceiveMessage", message);
 
@@ -129,16 +123,20 @@ var websocket_url = (program.hasOwnProperty('url')) ? program.url : 'wss://api.c
 console.log("Websocket URL: " + websocket_url);
 
 var websocket = new ws(websocket_url); // Use SSL
-session.websocket = new Websocket.Websocket(websocket);
+var session = undefined;
 
-websocket.on('open', function open() {
-  transportSessionDidOpen();
+websocket.on('open', function open() {  
+  session = new Session.Session(new Websocket.Websocket(websocket));
+  session.sharedSecret = "1728361872638323727987987ab123123";
+  session.userId = "27aeae53-f5d3-429d-82a9-35d0355b875c";
+
+  transportSessionDidOpen(session);
 });
 
 websocket.on('close', function close() {
-  transportSessionDidClose();
+  transportSessionDidClose(session);
 });
 
 websocket.on('message', function message(data, flags) {  
-  transportSessionDidReceiveMessage(data);
+  transportSessionDidReceiveMessage(session, data);
 });

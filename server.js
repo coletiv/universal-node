@@ -34,7 +34,7 @@ var Websocket 	= require('./lib/websocket');
 
 // Server configuration
 var useSSL = false;
-var HTTP_HOST = '0.0.0.0';
+var HTTPHost = '0.0.0.0';
 var port = useSSL ? 443 : 8080;
 
 var staticSharedSecret = "1728361872638323727987987ab123123";
@@ -49,20 +49,20 @@ var staticSharedSecret = "1728361872638323727987987ab123123";
 function transportSessionAuthenticate(session, object) {
   console.log("transportSessionAuthenticate");
 
-  if (session.state === "connected" && object.shared_secret === staticSharedSecret) {
+  if (session.isConnected() && object.shared_secret === staticSharedSecret) {
     console.log("transportSessionAuthenticate 'Success'");
 
-    var token;
+    var token = undefined;
 
     if (object.token) {
       token = object.token;
     }
 
-    session.didAuthenticateWithUserId(object.user_id, token);    
+    session.didAuthenticateWithUserId(object.user_id, token);        
 
     session.sendMessage(["session", "authenticated", {
       "user_id": session.userId,
-      "shared_secret": staticSharedSecret
+      "shared_secret": session.sharedSecret
     }]);    
 
   } else {
@@ -77,25 +77,23 @@ function transportSessionClose(session, object) {
   session.didClose();  
 }
 
-function transportSessionNetworkFound(session, timestamp) {
+function transportSessionEcho(session, message) {  
+  console.log("\nsending: \"" + message + "\" back");
 
-  // Check & Log public Ip
-  console.log(" + Network found: ");
+  session.sendMessage(message)
 }
 
 // Transport Session (Connection)
 
 function transportSessionDidReceiveMessage(session, message) {
-  console.log("transportSessionDidReceiveMessage");
-  console.log(message);
+  console.log("transportSessionDidReceiveMessage: " + message);  
 
-  // TODO Error handling, in case message is not in the correct format
   var type = message[0];
   var action = message[1];
   var object = message[2];
 
   // Check if the session is 'authenticated'
-  if (session.state !== "authenticated") {
+  if (session.isAuthenticated() === false) {  	
 
     // Expected 'session' 'authenticate'
     if (type === "session" && action === "authenticate") {
@@ -109,21 +107,16 @@ function transportSessionDidReceiveMessage(session, message) {
       transportSessionClose(session, object);
     }
 
-  } else {
-
+  } else {  	
+  	if ( (type === "message") && (action === "echo") ) {     
+        transportSessionEcho(session, message);      
+    }
     // User session
-    if (type === "session") {
+    else if (type === "session") {
       if (action === "close") {
         transportSessionClose(session, object);
       }
-    }
-
-    // Network
-    if (type === "network") {
-      if (action === "found") {
-        transportSessionNetworkFound(session, object.timestamp);
-      }
-    }    
+    }       
   }
 }
 
@@ -131,13 +124,14 @@ var websocketServer;
 
 if (useSSL) {
   var httpsServer = https.createServer(credentials, express()).listen(port); // Use HTTPS server
+
   websocketServer = new ws.Server({
     server: httpsServer
   }); // Instantiate the WSS server
 
 } else {
   websocketServer = new ws.Server({
-    host: HTTP_HOST,
+    host: HTTPHost,
     port: port
   }); // Instantiate the WS server
 }
@@ -146,6 +140,8 @@ websocketServer.on('connection', function connection(websocket) {
 
   var socketWrapper = new Websocket.Websocket(websocket);
   var session = new Session.Session(socketWrapper);
+  session.sharedSecret = staticSharedSecret;
+
   session.didConnect();
 
   websocket.on('close', function closeEvent(code, data) {
@@ -157,9 +153,9 @@ websocketServer.on('connection', function connection(websocket) {
   });
 
   websocket.on('message', function messageEvent(data, flags) {
-    var message = socketWrapper.unpackMessage(data);
+    var message = session.unpackMessage(data);
     
-    if (util.isNullOrUndefined(message) === false) {
+    if (util.isNullOrUndefined(message) === false) {    	
       transportSessionDidReceiveMessage(session, message);
     }
   });
