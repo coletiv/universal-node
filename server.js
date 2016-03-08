@@ -24,13 +24,13 @@
 
  */
 
-var fs 			= require('fs');
-var util 		= require('util');
-var https 		= require('https');
-var express 	= require('express');
-var ws 			= require('ws');
-var Session 	= require('./lib/session');
-var Websocket 	= require('./lib/websocket');
+var fs 					= require('fs');
+var util 				= require('util');
+var https 				= require('https');
+var express 			= require('express');
+var ws 					= require('ws');
+var universalSession 	= require('./lib/session');
+var universalWebsocket  = require('./lib/websocket');
 
 // Server configuration
 var useSSL = false;
@@ -138,8 +138,8 @@ if (useSSL) {
 
 websocketServer.on('connection', function connection(websocket) {
 
-  var socketWrapper = new Websocket.Websocket(websocket);
-  var session = new Session.Session(socketWrapper);
+  var socketWrapper = new universalWebsocket.Websocket(websocket);
+  var session = new universalSession.Session(socketWrapper);
   session.sharedSecret = staticSharedSecret;
 
   session.didConnect();

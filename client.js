@@ -28,12 +28,12 @@
  Usage: node client.js --url <websocket url i.e. ws://127.0.0.1:8080>
  */
 
-var ws        = require('ws');
-var msgpack   = require('msgpack');
-var prompt    = require('prompt');
-var program   = require('commander');
-var Session   = require('./lib/session.js');
-var Websocket = require('./lib/websocket.js');
+var ws                 = require('ws');
+var msgpack            = require('msgpack');
+var prompt             = require('prompt');
+var program            = require('commander');
+var universalSession   = require('./lib/session.js');
+var universalWebsocket = require('./lib/websocket.js');
 
 function userInputLoop(session) {
   console.log("\n*** Coletiv Universal/node Client ***");
@@ -70,6 +70,7 @@ function executeUserOption(session, userOption) {
       return;
     } break;
   }
+
   session.sendMessage([type, action, message]);
 }
 
@@ -126,7 +127,7 @@ var websocket = new ws(websocket_url); // Use SSL
 var session = undefined;
 
 websocket.on('open', function open() {  
-  session = new Session.Session(new Websocket.Websocket(websocket));
+  session = new universalSession.Session( (new universalWebsocket.Websocket(websocket)) );
   session.sharedSecret = "1728361872638323727987987ab123123";
   session.userId = "27aeae53-f5d3-429d-82a9-35d0355b875c";
 
