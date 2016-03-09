@@ -24,7 +24,7 @@
 
  */
 
-var universalNodeModule = require("./lib/index.js");
+var universalNodeModule = require("universal-node");
 var fileSystemModule    = require('fs');
 
 function nodeDidConnect(session) {

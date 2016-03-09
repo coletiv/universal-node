@@ -31,7 +31,7 @@
 
 var prompt          = require('prompt');
 var program         = require('commander');
-var universalModule = require('./lib/index.js');
+var universalModule = require('universal-node');
 
 function userInputLoop(session) {
   console.log('\n*** Coletiv Universal/node Client ***');
