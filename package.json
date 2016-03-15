@@ -1,21 +1,21 @@
 {
   "name": "universal-node",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Node.js node for Universal project",
   "main": "lib/index.js",
   "author": "COLETIV",
   "license": "MIT",
-  "repository" : { 
-    "type"  : "git", 
-    "url"   : "https://github.com/coletiv/universal-node"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/coletiv/universal-node"
   },
   "directories": {
-    "lib"     : "./lib",
-    "example" : "./examples"
+    "lib": "./lib",
+    "example": "./examples"
   },
-  "dependencies": {    
-    "msgpack" : "1.0.2",
-    "ws"      : "1.0.1",    
-    "express" : "4.13.4"    
+  "dependencies": {
+    "msgpack": "1.0.2",
+    "ws": "1.0.1",
+    "express": "4.13.4"
   }
 }
